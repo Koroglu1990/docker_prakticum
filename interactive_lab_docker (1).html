@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Практикум: Docker для DevOps</title>
+<style>
+  :root {
+    --bg: #f4f7f8;
+    --panel: #ffffff;
+    --text: #202832;
+    --text-dim: #5b6772;
+    --border: #dfe6ea;
+    --brand-dark: #0b2f57;
+    --brand: #1560b8;
+    --brand-teal: #0d8ec9;
+    --brand-light: #e8f2fc;
+    --ok-bg: #eaf7ee;
+    --ok-border: #2f9e56;
+    --ok-text: #1f6e3b;
+    --warn-bg: #fff7e6;
+    --warn-border: #d1a13a;
+    --warn-text: #8a6516;
+    --err-bg: #fdeeea;
+    --err-border: #d9532c;
+    --err-text: #b8401d;
+    --code-bg: #1e2733;
+    --code-text: #d7e3ea;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151a;
+      --panel: #171f26;
+      --text: #e7edf1;
+      --text-dim: #9fb0ba;
+      --border: #2a343c;
+      --brand-light: #142a40;
+      --code-bg: #0d1319;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151a;
+    --panel: #171f26;
+    --text: #e7edf1;
+    --text-dim: #9fb0ba;
+    --border: #2a343c;
+    --brand-light: #142a40;
+    --code-bg: #0d1319;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "DejaVu Sans", sans-serif;
+    line-height: 1.55;
+    -webkit-user-select: none; user-select: none; /* блокируем выделение везде по умолчанию */
+  }
+  /* но в текстовых полях студент должен свободно печатать */
+  textarea, input { -webkit-user-select: text; user-select: text; }
+  p, li, .selectable { -webkit-user-select: text; user-select: text; } /* обычный текст пусть выделяется — это не код */
+
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, var(--brand-dark), var(--brand));
+    color: #fff; padding: 14px 20px calc(14px + env(safe-area-inset-top, 0px)) 20px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  }
+  .topbar .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: 0.2px; }
+  .topbar .sub { font-size: 11.5px; opacity: 0.8; margin-top: 2px; }
+  .progress-wrap { max-width: 720px; margin: 10px auto 0 auto; }
+  .progress-track { background: rgba(255,255,255,0.18); border-radius: 20px; height: 7px; overflow: hidden; }
+  .progress-fill { background: #8fd3ff; height: 100%; border-radius: 20px; transition: width .3s ease; }
+  .progress-label { font-size: 10.5px; opacity: 0.85; margin-top: 5px; display:flex; justify-content: space-between; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 18px 16px 60px 16px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 18px; margin-bottom: 16px;
+  }
+  .tag {
+    display:inline-block; background: var(--brand-light); color: var(--brand);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;
+  }
+  h2 { font-size: 19px; color: var(--brand-dark); margin: 0 0 10px 0; }
+  h3 { font-size: 14.5px; color: var(--brand-dark); margin: 16px 0 6px 0; }
+  p { margin: 0 0 10px 0; color: var(--text); }
+  ul, ol { margin: 0 0 10px 0; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+  b { color: var(--brand-dark); }
+  .btn-tag {
+    display:inline-block; background: var(--brand-light); border: 1px solid var(--border);
+    color: var(--brand); border-radius: 5px; padding: 1px 7px; font-size: 12.5px; font-weight: 700;
+  }
+  .kbd {
+    display:inline-block; background: #2a333d; color: #e8eef2; border-radius: 5px;
+    padding: 1px 7px; font-family: "SFMono-Regular", Menlo, monospace; font-size: 12px;
+  }
+
+  .callout { border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 13.5px; }
+  .callout .ct { font-weight: 700; display:block; margin-bottom: 3px; }
+  .callout.info { background: var(--brand-light); border-left: 4px solid var(--brand); }
+  .callout.info .ct { color: var(--brand); }
+  .callout.warn { background: var(--warn-bg); border-left: 4px solid var(--warn-border); }
+  .callout.warn .ct { color: var(--warn-text); }
+  .callout.ok { background: var(--ok-bg); border-left: 4px solid var(--ok-border); }
+  .callout.ok .ct { color: var(--ok-text); }
+
+  .step { display: flex; margin-bottom: 12px; gap: 10px; }
+  .step .num {
+    background: var(--brand-teal); color: #fff; min-width: 24px; height: 24px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size: 12px; flex-shrink:0;
+  }
+  .step .txt { padding-top: 2px; }
+
+  /* --- защищённый блок кода (не выделяется, копирование блокируется) --- */
+  .codebox-label {
+    display:inline-block; background: var(--brand-dark); color:#e3f1ff; font-family: Menlo, monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 5px 5px 0 0; margin: 10px 0 -6px 0;
+  }
+  .codebox {
+    background: var(--code-bg); color: var(--code-text); font-family: "SFMono-Regular", Menlo, monospace;
+    font-size: 12px; border-radius: 8px; padding: 12px 14px; margin: 6px 0 4px 0;
+    white-space: pre; overflow-x: auto; line-height: 1.5;
+    -webkit-user-select: none !important; user-select: none !important;
+    position: relative;
+  }
+  .codebox::after {
+    content: "🔒 нельзя скопировать — впишите ниже сами";
+    display: block; font-size: 10px; opacity: 0.55; margin-top: 8px; user-select: none;
+  }
+
+  .challenge {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin: 14px 0; background: var(--bg);
+  }
+  .challenge textarea {
+    width: 100%; min-height: 120px; font-family: "SFMono-Regular", Menlo, monospace; font-size: 12.5px;
+    border-radius: 8px; border: 1.5px solid var(--border); background: var(--panel); color: var(--text);
+    padding: 10px; resize: vertical; line-height: 1.5; tab-size: 4;
+  }
+  .challenge textarea:focus { outline: none; border-color: var(--brand-teal); }
+  .challenge .row2 { display:flex; gap:8px; align-items:center; margin-top: 8px; flex-wrap: wrap; }
+  .check-btn {
+    background: var(--brand); color:#fff; border:none; border-radius: 7px; padding: 8px 16px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .check-btn:hover { background: var(--brand-dark); }
+  .result-msg { font-size: 12.5px; font-weight: 600; }
+  .result-msg.ok { color: var(--ok-text); }
+  .result-msg.err { color: var(--err-text); }
+  .done-badge {
+    display:inline-block; background: var(--ok-bg); color: var(--ok-text); border: 1px solid var(--ok-border);
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; margin-left: 6px;
+  }
+  .why-box {
+    background: var(--brand-light); border-radius: 8px; padding: 9px 13px; margin: 0 0 4px 0;
+    font-size: 12.5px; color: var(--text);
+  }
+  .nav-row { display:flex; justify-content: space-between; align-items:center; margin-top: 10px; gap: 10px; }
+  .nav-btn {
+    background: var(--brand-teal); color:#fff; border:none; border-radius: 9px; padding: 12px 20px;
+    font-size: 14px; font-weight: 700; cursor: pointer; flex: 1;
+  }
+  .nav-btn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+  .nav-btn.secondary { background: transparent; color: var(--brand); border: 1.5px solid var(--border); flex: 0 0 auto; }
+
+  .toc { display: grid; gap: 6px; margin: 14px 0; }
+  .toc-item {
+    display:flex; align-items:center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); cursor: pointer; background: var(--panel);
+  }
+  .toc-item.current { border-color: var(--brand-teal); background: var(--brand-light); }
+  .toc-item.locked { opacity: 0.5; cursor: not-allowed; }
+  .toc-num {
+    min-width: 22px; height: 22px; border-radius: 50%; background: var(--border); color: var(--text-dim);
+    display:flex; align-items:center; justify-content:center; font-size: 11px; font-weight: 700; flex-shrink:0;
+  }
+  .toc-item.current .toc-num { background: var(--brand-teal); color: #fff; }
+  .toc-item.complete .toc-num { background: var(--ok-border); color: #fff; }
+  .toc-title { font-size: 13px; }
+
+  footer.pagefoot { text-align:center; color: var(--text-dim); font-size: 11px; padding: 10px 0 30px 0; }
+
+  .reset-link { color: var(--text-dim); font-size: 11px; text-decoration: underline; cursor: pointer; background:none; border:none; padding: 0; }
+
+  /* --- вход по имени --- */
+  .gate { max-width: 420px; margin: 60px auto; padding: 0 16px; }
+  .gate .card { text-align: center; }
+  .gate input {
+    width: 100%; padding: 11px 13px; margin: 8px 0; border-radius: 8px;
+    border: 1.5px solid var(--border); background: var(--panel); color: var(--text); font-size: 14px;
+  }
+  .gate input:focus { outline: none; border-color: var(--brand-teal); }
+  .gate-btn {
+    width: 100%; background: var(--brand-teal); color:#fff; border:none; border-radius: 9px;
+    padding: 13px; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  }
+  .gate-btn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+  .gate-err { color: var(--err-text); font-size: 12px; margin-top: 6px; min-height: 16px; }
+
+  /* --- отчёт для преподавателя --- */
+  .report-box {
+    background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 12px 14px;
+    font-family: "SFMono-Regular", Menlo, monospace; font-size: 12px; white-space: pre-wrap;
+    -webkit-user-select: text; user-select: text; margin: 10px 0;
+  }
+  .copy-btn {
+    background: var(--brand-dark); color:#fff; border:none; border-radius: 8px; padding: 10px 18px;
+    font-size: 13.5px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  }
+  .copy-btn.copied { background: var(--ok-border); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10,15,20,0.55); z-index: 50;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-card {
+    background: var(--panel); border-radius: 12px; padding: 20px; max-width: 460px; width: 100%;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal-close {
+    float: right; background: none; border: none; font-size: 18px; color: var(--text-dim); cursor: pointer;
+  }
+
+  ::selection { background: transparent; }
+  textarea::selection, input::selection, p::selection, li::selection { background: #b7d9e8; }
+
+  /* --- дополнения --- */
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 14px 0; }
+  table.t th { text-align: left; background: var(--brand-light); color: var(--brand-dark); padding: 7px 9px; border: 1px solid var(--border); }
+  table.t td { padding: 7px 9px; border: 1px solid var(--border); vertical-align: top; background: var(--panel); }
+  .codebox .ln {
+    display: inline-block; min-width: 2.4em; margin-right: 12px; padding-right: 8px; text-align: right;
+    opacity: 0.45; border-right: 1px solid rgba(255,255,255,0.2);
+    -webkit-user-select: none; user-select: none;
+  }
+  .codebox.view::after { content: "🔒 только для чтения — ответ впишите ниже"; }
+  .callout b, .callout i { color: inherit; }
+
+  [hidden] { display: none !important; }
+  .gate { text-align: left; }
+  .gate .card h2, .gate .card > p { text-align: center; }
+  .gate-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-dim); margin: 12px 0 2px 2px; }
+  .gate select {
+    width: 100%; padding: 11px 13px; margin: 4px 0 2px 0; border-radius: 8px;
+    border: 1.5px solid var(--border); background: var(--panel); color: var(--text); font-size: 14px;
+  }
+  .gate select:focus { outline: none; border-color: var(--brand-teal); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="row">
+    <div>
+      <h1>Практикум: Docker для DevOps</h1>
+      <div class="sub" id="subLabel">Контейнеры, Dockerfile и Compose — на практике</div>
+    </div>
+    <div style="text-align:right;">
+      <div id="studentLabel" style="font-size:11.5px; color:#e3f1ff; margin-bottom:3px;"></div>
+      <button class="reset-link" onclick="toggleReportModal(true)" style="color:#e3f1ff; margin-right:10px;">Отчёт о прогрессе</button>
+      <button class="reset-link" onclick="resetProgress()" style="color:#e3f1ff;">Сбросить прогресс</button>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-label"><span id="progressText">Часть 1 из 12</span><span id="progressPct">0%</span></div>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<footer class="pagefoot">Код в тёмных блоках нельзя выделить и скопировать — его нужно перепечатать в поле ниже, чтобы двигаться дальше.</footer>
+
+<script>
+/* ============================ ЯДРО ПРОВЕРКИ ============================ */
+/* Проверка «напечатайте по образцу» сравнивает код построчно: пустые строки и лишние пробелы
+   внутри строки не важны, а отступы в начале строки сохраняются (для YAML и Python они значимы). */
+
+function normLine(l, mode) {
+  const lead = l.match(/^[ \t]*/)[0].replace(/\t/g, "  ");
+  let body = l.slice(l.match(/^[ \t]*/)[0].length).replace(/\s+/g, " ").replace(/\s+$/, "");
+  if (mode === "code") body = body.replace(/\s*([()\[\],=])\s*/g, "$1");
+  return lead + body;
+}
+function linesOf(src, mode) {
+  const out = [];
+  String(src).replace(/\r/g, "").split("\n").forEach((l, i) => {
+    if (l.trim() === "") return;
+    out.push({ line: i + 1, t: normLine(l, mode) });
+  });
+  return out;
+}
+function checkTyped(ch, raw) {
+  if (!String(raw).trim()) return { ok: false, msg: "✗ Поле пустое. Впишите код из образца." };
+  const mode = ch.mode || "cmd";
+  const stu = linesOf(raw, mode), exp = linesOf(ch.code, mode);
+  const n = Math.max(stu.length, exp.length);
+  for (let i = 0; i < n; i++) {
+    if (!stu[i]) return { ok: false, msg: `✗ Пока не совпадает. Похоже, вы остановились раньше: после строки ${stu.length ? stu[stu.length - 1].line : 1} чего-то не хватает.` };
+    if (!exp[i]) return { ok: false, msg: `✗ Пока не совпадает. В конце есть лишнее — проверьте строку ${stu[i].line}.` };
+    if (stu[i].t !== exp[i].t) {
+      const lead = stu[i].t.match(/^ */)[0].length !== exp[i].t.match(/^ */)[0].length;
+      return { ok: false, msg: `✗ Пока не совпадает. Проверьте строку ${stu[i].line}: «${stu[i].t.trim()}»${lead ? " — обратите внимание на отступ в начале строки" : " — сравните с образцом"}.` };
+    }
+  }
+  return { ok: true };
+}
+
+/* ---------- вопросы с коротким ответом ---------- */
+function normAnswer(s) {
+  return String(s).trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ").replace(/[.!]+$/g, "");
+}
+function checkCalc(ch, raw) {
+  const answers = (ch.answers || [ch.answer]).map(String);
+  const numeric = answers.every(a => /^-?[0-9.]+$/.test(a.trim()));
+  if (numeric) {
+    const stripped = String(raw).replace(/[^0-9.\-]/g, "");
+    const ok = stripped !== "" && answers.some(a => parseFloat(stripped) === parseFloat(a));
+    return { ok, msg: "✗ Пока не то. Проверьте ещё раз (нужно число)." };
+  }
+  const v = normAnswer(raw);
+  return { ok: v !== "" && answers.some(a => normAnswer(a) === v), msg: "✗ Пока не то. Проверьте ещё раз." };
+}
+
+/* ---------- мини-разборщик YAML (блочные словари и списки) ---------- */
+function parseYaml(src) {
+  const raw = String(src).replace(/\r/g, "").split("\n");
+  const lines = [];
+  for (let i = 0; i < raw.length; i++) {
+    let l = raw[i];
+    if (/\t/.test(l.match(/^\s*/)[0])) return { ok: false, line: i + 1, msg: "в отступах YAML нельзя использовать табуляцию — только пробелы" };
+    l = l.replace(/(^|\s)#.*$/, "$1");
+    if (l.trim() === "") continue;
+    lines.push({ n: i + 1, ind: l.match(/^ */)[0].length, t: l.trim() });
+  }
+  if (!lines.length) return { ok: false, line: 1, msg: "файл пустой" };
+  let pos = 0;
+  const isItem = (t) => t === "-" || t.startsWith("- ");
+  const scalar = (s) => {
+    s = s.trim();
+    if (s.length > 1 && ((s[0] === '"' && s.endsWith('"')) || (s[0] === "'" && s.endsWith("'")))) return s.slice(1, -1);
+    return s;
+  };
+  function block(ind) {
+    if (isItem(lines[pos].t)) {
+      const arr = [];
+      while (pos < lines.length && lines[pos].ind === ind && isItem(lines[pos].t)) {
+        arr.push(scalar(lines[pos].t.slice(1)));
+        pos++;
+      }
+      return arr;
+    }
+    const obj = {};
+    while (pos < lines.length && lines[pos].ind === ind && !isItem(lines[pos].t)) {
+      const ln = lines[pos];
+      const m = ln.t.match(/^([^:\s][^:]*?):(?:\s+(.*))?$/);
+      if (!m) throw { line: ln.n, msg: `не получилось прочитать «${ln.t}» — ожидается «ключ: значение» (после двоеточия нужен пробел)` };
+      pos++;
+      const key = m[1].trim(), val = m[2];
+      if (val !== undefined && val.trim() !== "") obj[key] = scalar(val);
+      else if (pos < lines.length && lines[pos].ind > ind) obj[key] = block(lines[pos].ind);
+      else if (pos < lines.length && lines[pos].ind === ind && isItem(lines[pos].t)) obj[key] = block(ind);
+      else obj[key] = null;
+    }
+    if (pos < lines.length && lines[pos].ind > ind) throw { line: lines[pos].n, msg: "лишний отступ: строка сдвинута вправо без родительского ключа" };
+    return obj;
+  }
+  try {
+    const v = block(lines[0].ind);
+    if (pos < lines.length) throw { line: lines[pos].n, msg: "отступ не совпадает с соседними строками" };
+    return { ok: true, value: v };
+  } catch (e) {
+    return { ok: false, line: e.line || 1, msg: e.msg || "ошибка разбора" };
+  }
+}
+const isObj = (x) => x && typeof x === "object" && !Array.isArray(x);
+const hasKey = (o, k) => isObj(o) && Object.prototype.hasOwnProperty.call(o, k);
+
+/* ---------- составление «с нуля» ---------- */
+// 1. команда docker run
+function checkRunCmd(raw) {
+  const s = String(raw).trim().replace(/\s+/g, " ");
+  if (!s) return { ok: false, msg: "✗ Поле пустое." };
+  const t = s.split(" ");
+  if (t[0] !== "docker" || t[1] !== "run") return { ok: false, msg: "✗ Команда должна начинаться с «docker run»." };
+  const has = (f) => t.includes(f);
+  const val = (short, long) => {
+    for (let i = 2; i < t.length; i++) {
+      if (t[i] === short || t[i] === long) return t[i + 1];
+      if (long && t[i].startsWith(long + "=")) return t[i].slice(long.length + 1);
+      if (short && t[i].length > 2 && t[i].startsWith(short) && !t[i].startsWith("--")) return t[i].slice(2);
+    }
+    return undefined;
+  };
+  if (!(has("-d") || has("--detach"))) return { ok: false, msg: "✗ Контейнер должен работать в фоне — добавьте флаг для фонового режима." };
+  if (val(null, "--name") !== "clinic-web") return { ok: false, msg: "✗ Имя контейнера должно быть clinic-web (флаг --name)." };
+  if (!(val("-p", "--publish") === "8080:80")) return { ok: false, msg: "✗ Порт: 8080 хоста должен вести на 80 контейнера (флаг -p, формат хост:контейнер)." };
+  if (val("-e", "--env") !== "APP_ENV=production") return { ok: false, msg: "✗ Переменная окружения APP_ENV=production не передана (флаг -e)." };
+  if (t[t.length - 1] !== "nginx:alpine") return { ok: false, msg: "✗ Образ nginx:alpine указывается последним — после всех флагов." };
+  return { ok: true };
+}
+
+// 2. Dockerfile для Node.js
+function checkClinicDockerfile(raw) {
+  const ins = [];
+  String(raw).replace(/\r/g, "").split("\n").forEach((l, i) => {
+    const s = l.trim();
+    if (!s || s.startsWith("#")) return;
+    const n = normLine(s, "code");
+    ins.push({ line: i + 1, t: n, cmd: (n.match(/^[A-Za-z]+/) || [""])[0].toUpperCase() });
+  });
+  if (!ins.length) return { ok: false, msg: "✗ Поле пустое." };
+  if (ins[0].cmd !== "FROM" || !/^FROM node:20-alpine$/i.test(ins[0].t)) return { ok: false, msg: "✗ Первая инструкция — FROM с образом node:20-alpine." };
+  const find = (re) => ins.findIndex(x => re.test(x.t));
+  const iWork = find(/^WORKDIR \/app\/?$/i);
+  const iPkg = find(/^COPY (package\*\.json|package\.json package-lock\.json) \.\/?$/i);
+  const iRun = find(/^RUN npm (install|ci|i)( --omit=dev| --production)?$/i);
+  const iAll = find(/^COPY \. \.\/?$/i);
+  const iExp = find(/^EXPOSE 3000$/i);
+  const iCmd = find(/^CMD\["node","server\.js"\]$/i);
+  if (iWork < 0) return { ok: false, msg: "✗ Не задана рабочая папка /app (инструкция WORKDIR)." };
+  if (iPkg < 0) return { ok: false, msg: "✗ Сначала нужно скопировать только файлы package*.json — чтобы кеш зависимостей не сбрасывался при правке кода." };
+  if (iRun < 0) return { ok: false, msg: "✗ Не найдена установка зависимостей: RUN npm install." };
+  if (iAll < 0) return { ok: false, msg: "✗ Не найдено копирование всего кода проекта в образ (COPY . .)." };
+  if (!(iWork < iPkg)) return { ok: false, msg: "✗ WORKDIR должен идти раньше копирования файлов." };
+  if (!(iPkg < iRun)) return { ok: false, msg: "✗ package*.json нужно скопировать до установки зависимостей." };
+  if (!(iRun < iAll)) return { ok: false, msg: "✗ Код проекта копируется после установки зависимостей — иначе кеш слоя с зависимостями не работает." };
+  if (iExp < 0) return { ok: false, msg: "✗ Порт 3000 не задокументирован (инструкция EXPOSE)." };
+  if (iCmd < 0) {
+    if (ins.some(x => x.cmd === "CMD")) return { ok: false, msg: "✗ CMD должна быть в exec-форме: JSON-массив в двойных кавычках, например [\"a\", \"b\"], и запускать node server.js." };
+    return { ok: false, msg: "✗ Не задана команда запуска (инструкция CMD)." };
+  }
+  if (ins[ins.length - 1].cmd !== "CMD") return { ok: false, msg: "✗ CMD принято ставить последней инструкцией." };
+  return { ok: true };
+}
+
+// 3. compose.yaml
+function checkClinicCompose(raw) {
+  const y = parseYaml(raw);
+  if (!y.ok) return { ok: false, msg: `✗ Ошибка YAML, строка ${y.line}: ${y.msg}` };
+  const v = y.value;
+  if (!isObj(v) || !isObj(v.services)) return { ok: false, msg: "✗ На верхнем уровне нужен ключ services, а внутри него — сервисы." };
+  const web = v.services.web, db = v.services.db;
+  if (!isObj(web)) return { ok: false, msg: "✗ Не найден сервис web." };
+  if (!isObj(db)) return { ok: false, msg: "✗ Не найден сервис db." };
+  if (web.image !== "nginx:alpine") return { ok: false, msg: "✗ У сервиса web должен быть образ nginx:alpine (ключ image)." };
+  if (!Array.isArray(web.ports) || !web.ports.includes("8080:80")) return { ok: false, msg: "✗ У web порт 8080 хоста должен вести на 80 контейнера (ключ ports — список)." };
+  const dep = Array.isArray(web.depends_on) ? web.depends_on.includes("db") : hasKey(web.depends_on, "db");
+  if (!dep) return { ok: false, msg: "✗ web должен запускаться после db (ключ depends_on)." };
+  if (db.image !== "postgres:16") return { ok: false, msg: "✗ У сервиса db должен быть образ postgres:16." };
+  const env = db.environment;
+  const envOk = Array.isArray(env) ? env.includes("POSTGRES_PASSWORD=secret") : (isObj(env) && env.POSTGRES_PASSWORD === "secret");
+  if (!envOk) return { ok: false, msg: "✗ У db не задана переменная POSTGRES_PASSWORD со значением secret (ключ environment)." };
+  if (!Array.isArray(db.volumes) || !db.volumes.includes("dbdata:/var/lib/postgresql/data")) return { ok: false, msg: "✗ У db том dbdata должен быть подключён к /var/lib/postgresql/data (ключ volumes — список, формат том:путь)." };
+  if (!hasKey(v.volumes, "dbdata")) return { ok: false, msg: "✗ Том dbdata нужно объявить и на верхнем уровне файла (ключ volumes рядом с services)." };
+  return { ok: true };
+}
+const COMPOSE_CHECKERS = { runCmd: checkRunCmd, clinicDockerfile: checkClinicDockerfile, clinicCompose: checkClinicCompose };
+
+if (typeof module !== "undefined") {
+  module.exports = { normLine, checkTyped, checkCalc, parseYaml, checkRunCmd, checkClinicDockerfile, checkClinicCompose, COMPOSE_CHECKERS };
+}
+
+
+/* ============================ ДАННЫЕ ЧАСТЕЙ ============================ */
+// k() — «клавиша»/команда в тексте; блоки кода в заданиях нельзя выделить и скопировать
+const k = (s) => '<span class="kbd">' + escapeHtml(s) + '</span>';
+
+const PARTS = [
+{
+  id: 0, tag: "Старт", title: "Что мы делаем",
+  html: `
+    <p>Это практикум по дисциплине «DevOps»: мы возьмём сервис онлайн-записи к врачу из контрольной точки 1 и шаг за шагом
+    упакуем его в контейнер. Пройдём путь от первой команды ${k("docker run")} до файла ${k("compose.yaml")}, который поднимает несколько сервисов сразу.</p>
+    <div class="step"><div class="num">1</div><div class="txt">Каждая часть начинается с короткой теории — прочитайте её.</div></div>
+    <div class="step"><div class="num">2</div><div class="txt">Дальше идут задания. <b>Код и команды нельзя скопировать</b> — их нужно набрать самому, как в терминале на настоящем занятии.</div></div>
+    <div class="step"><div class="num">3</div><div class="txt">Есть вопросы с коротким ответом (число или слово): ответ нигде не показан, его нужно понять или посчитать. В конце вы составите команду, Dockerfile и <span class="kbd">compose.yaml</span> <b>с нуля</b> по описанию.</div></div>
+    <div class="step"><div class="num">4</div><div class="txt">Часть засчитывается, когда решены все её задания. Тогда открывается следующая.</div></div>
+    <h3>Что нужно установить</h3>
+    <ul>
+      <li><b>Windows:</b> Docker Desktop с включённым WSL 2 (вы уже ставили WSL в теме про Linux). После установки перезагрузите компьютер и запустите Docker Desktop — в трее должен появиться значок кита.</li>
+      <li><b>macOS:</b> Docker Desktop для вашего процессора (Apple или Intel).</li>
+      <li><b>Linux:</b> Docker Engine из репозитория вашего дистрибутива и плагин Docker Compose.</li>
+      <li>Терминал: Ubuntu в WSL, Terminal в macOS или Linux. Команды из этого практикума вводите именно там.</li>
+    </ul>
+    <div class="callout info"><span class="ct">Как проверяет практикум</span>Практикум проверяет, что вы правильно понимаете и печатаете команды. Сами контейнеры он не запускает — поэтому набирайте каждый пример ещё и в своём терминале и смотрите, что получается. Так вы тренируете именно тот навык, который нужен на контрольных точках.</div>
+    <div class="callout warn"><span class="ct">Если Docker не запускается</span>Чаще всего причина в выключенной виртуализации (BIOS) или в том, что не запущен сам Docker Desktop. Команда ${k("docker --version")} может работать и при остановленном Docker, а вот ${k("docker ps")} — уже нет.</div>
+  `,
+  challenges: []
+},
+{
+  id: 1, tag: "Часть 1", title: "Зачем нужны контейнеры",
+  html: `
+    <p>Помните ситуацию «на моей машине работает, а на сервере — нет»? Контейнер решает именно её: приложение упаковывается вместе со всем, что ему нужно
+    (библиотеки, настройки, версия интерпретатора), и запускается одинаково у разработчика, на тестовом стенде и в продакшене.</p>
+    <table class="t">
+      <tr><th></th><th>Виртуальная машина</th><th>Контейнер</th></tr>
+      <tr><td><b>Ядро ОС</b></td><td>своё у каждой машины</td><td>общее ядро хоста</td></tr>
+      <tr><td><b>Размер</b></td><td>гигабайты</td><td>десятки–сотни мегабайт</td></tr>
+      <tr><td><b>Запуск</b></td><td>минуты</td><td>секунды</td></tr>
+      <tr><td><b>Изоляция</b></td><td>полная, на уровне «железа»</td><td>на уровне процессов</td></tr>
+    </table>
+    <div class="callout info"><span class="ct">Связь с DevOps-циклом</span>Docker закрывает сразу два этапа цикла: <b>Build</b> (упаковать приложение в образ) и <b>Deploy</b> (запустить этот образ там, где он нужен). Образ, собранный один раз, едет по всему конвейеру без изменений.</div>
+    <div class="callout warn"><span class="ct">Запомните</span>Docker — это инструмент, а не сам DevOps. Контейнеры помогают культуре DevOps работать на практике, но не заменяют её.</div>
+  `,
+  challenges: [
+    { calc: true, question: "На сервере работают 5 контейнеров. Сколько ядер операционной системы они используют совместно? (число)", answer: "1",
+      why: "Именно общее ядро делает контейнеры лёгкими и быстрыми по сравнению с виртуальными машинами.", note: "Смотрите строку «Ядро ОС» в таблице." },
+    { calc: true, question: "Ядро какой операционной системы использует Docker на сервере? (одно слово)", answers: ["linux", "линукс"],
+      why: "Поэтому Linux в этом курсе идёт раньше Docker: команды терминала пригодятся на каждом шагу.", note: "Вспомните тему «Linux для DevOps-инженера»." },
+    { calc: true, question: "Какая команда показывает установленную версию Docker? Впишите команду целиком.", answers: ["docker --version", "docker -v", "docker version"],
+      why: "Первое, что делает инженер на новом сервере, — проверяет, что нужные инструменты установлены.", note: "Такая же проверка была в шпаргалке первой темы." }
+  ],
+  after: `
+    <div class="step"><div class="num">5</div><div class="txt">Выполните эту команду в своём терминале. Если версия выводится — Docker установлен. Если нет — вернитесь к разделу «Что нужно установить» в первой части.</div></div>
+  `
+},
+{
+  id: 2, tag: "Часть 2", title: "Первый контейнер",
+  html: `
+    <p>Два ключевых понятия. <b>Образ</b> — неизменяемый «слепок» с приложением и окружением, из него запускают контейнеры. <b>Контейнер</b> — запущенный экземпляр образа.
+    Как класс и объект в ООП: из одного образа можно запустить сколько угодно контейнеров. Образы берутся из реестра — по умолчанию это Docker Hub.</p>
+    <table class="t">
+      <tr><th>Флаг ${k("docker run")}</th><th>Что делает</th></tr>
+      <tr><td>${k("-d")}</td><td>запускает контейнер в фоне и возвращает управление терминалу</td></tr>
+      <tr><td>${k("--name")}</td><td>задаёт понятное имя вместо случайного</td></tr>
+      <tr><td>${k("-p хост:контейнер")}</td><td>пробрасывает порт: обращения к порту хоста уходят на порт внутри контейнера</td></tr>
+      <tr><td>${k("--rm")}</td><td>удаляет контейнер сразу после остановки</td></tr>
+    </table>
+    <p>Образ указывается последним, после всех флагов. Запустим тестовый образ и веб-сервер nginx.</p>
+  `,
+  challenges: [
+    { filename: "terminal", mode: "cmd",
+      why: "Три команды — вся основа работы: запустить, запустить в фоне с портом, посмотреть, что работает.",
+      code: `docker run hello-world
+docker run -d --name clinic-web -p 8080:80 nginx:alpine
+docker ps`,
+      note: "Образ nginx:alpine — это nginx на лёгком дистрибутиве Alpine Linux; после двоеточия стоит тег, то есть версия." },
+    { calc: true, question: "Что означает первое число в -p 8080:80: порт хоста или порт контейнера? (хоста / контейнера)", answers: ["хоста", "порт хоста", "хост"],
+      why: "Формат всегда «снаружи:внутри». Перепутать порты — самая частая ошибка новичков.", note: "Формат: -p хост:контейнер." },
+    { calc: true, question: "Какой адрес открыть в браузере, чтобы увидеть страницу nginx после второй команды? (в виде localhost:порт)", answers: ["localhost:8080", "http://localhost:8080", "127.0.0.1:8080", "http://127.0.0.1:8080", "http://localhost:8080/"],
+      why: "Внутри контейнера nginx слушает порт 80, но снаружи он доступен на порту, который вы указали слева.", note: "Обращаться нужно к тому порту, который проброшен на хосте." },
+    { calc: true, question: "Сколько контейнеров покажет docker ps после этих трёх команд? hello-world печатает сообщение и сразу завершается. (число)", answer: "1",
+      why: "docker ps показывает только работающие контейнеры — завершившиеся в нём не видно.", note: "Считайте только те контейнеры, которые продолжают работать." }
+  ],
+  after: `
+    <div class="step"><div class="num">5</div><div class="txt">Повторите команды в своём терминале и откройте адрес в браузере. Должна появиться страница «Welcome to nginx!».</div></div>
+    <div class="callout warn"><span class="ct">Если порт занят</span>Ошибка «port is already allocated» означает, что порт 8080 на вашем компьютере уже кем-то используется. Тогда поменяйте <b>левое</b> число: например, ${k("-p 8081:80")}.</div>
+  `
+},
+{
+  id: 3, tag: "Часть 3", title: "Жизнь контейнера",
+  html: `
+    <p>Контейнер можно смотреть, останавливать, заходить внутрь и удалять. Это ежедневная рутина инженера на этапе <b>Operate</b>.</p>
+    <table class="t">
+      <tr><th>Команда</th><th>Что делает</th></tr>
+      <tr><td>${k("docker ps -a")}</td><td>список всех контейнеров, включая остановленные</td></tr>
+      <tr><td>${k("docker logs имя")}</td><td>вывод программы внутри контейнера; с флагом ${k("-f")} — в реальном времени</td></tr>
+      <tr><td>${k("docker exec -it имя sh")}</td><td>открыть терминал внутри работающего контейнера</td></tr>
+      <tr><td>${k("docker stop имя")}</td><td>вежливо остановить контейнер</td></tr>
+      <tr><td>${k("docker rm имя")}</td><td>удалить остановленный контейнер</td></tr>
+    </table>
+    <div class="callout info"><span class="ct">Код завершения</span>Когда контейнер останавливается, у него есть код завершения. 0 — программа закончила работу штатно. Любое другое число — ошибка. Если процесс убили сигналом, код равен 128 плюс номер сигнала. Помните ${k("kill -9")} из темы про Linux?</div>
+  `,
+  challenges: [
+    { filename: "terminal", mode: "cmd",
+      why: "Эти пять команд вы будете вводить чаще всего: посмотреть, прочитать логи, зайти внутрь, остановить, убрать.",
+      code: `docker ps -a
+docker logs clinic-web
+docker exec -it clinic-web sh
+docker stop clinic-web
+docker rm clinic-web`,
+      note: "Внутри контейнера выйти из терминала можно командой exit." },
+    { calc: true, question: "Какой флаг docker ps показывает и остановленные контейнеры? (например, -x)", answers: ["-a", "--all", "a"],
+      why: "Упавший контейнер не виден в обычном docker ps — без этого флага причину не найти.", note: "Он есть в таблице выше." },
+    { calc: true, question: "Какая команда Linux из прошлой темы делает то же, что docker logs -f: следит за файлом в реальном времени? (команда с флагом)", answers: ["tail -f"],
+      why: "Логи контейнера читаются так же, как логи на обычном сервере — навык тот же.", note: "Вспомните раздел «Просмотр и редактирование файлов»." },
+    { calc: true, question: "Контейнер завершился с кодом 137. Каким сигналом его остановили? Введите номер сигнала. (число)", answer: "9",
+      why: "Код 137 часто означает, что контейнер убит принудительно, в том числе из-за нехватки памяти.", note: "Код завершения = 128 + номер сигнала." }
+  ],
+  after: `
+    <p>Теперь прочитайте вывод команды ${k("docker ps -a")} на другом сервере.</p>
+  `,
+  challenges2: [
+    { calc: true, viewName: "docker ps -a", view: `CONTAINER ID   IMAGE          STATUS                     NAMES
+a1b2c3d4e5f6   nginx:alpine   Up 5 minutes               clinic-web
+f6e5d4c3b2a1   postgres:16    Exited (1) 2 minutes ago   clinic-db
+9f8e7d6c5b4a   hello-world    Exited (0) 9 minutes ago   test`,
+      question: "Какой контейнер завершился с ошибкой? (введите имя)", answer: "clinic-db",
+      why: "Уметь читать статус контейнера — половина диагностики.", note: "Ошибка — это ненулевой код завершения." },
+    { calc: true, viewName: "docker ps -a", view: `CONTAINER ID   IMAGE          STATUS                     NAMES
+a1b2c3d4e5f6   nginx:alpine   Up 5 minutes               clinic-web
+f6e5d4c3b2a1   postgres:16    Exited (1) 2 minutes ago   clinic-db
+9f8e7d6c5b4a   hello-world    Exited (0) 9 minutes ago   test`,
+      question: "Сколько контейнеров сейчас работает? (число)", answer: "1",
+      why: "Работающие контейнеры отмечены словом Up.", note: "Считайте строки со статусом Up." }
+  ]
+},
+{
+  id: 4, tag: "Часть 4", title: "Dockerfile: свой образ",
+  html: `
+    <p>Готовые образы удобны, но собственное приложение нужно упаковать самому. Рецепт сборки образа записывается в файле ${k("Dockerfile")}: каждая инструкция — один шаг.
+    Упакуем маленький сервис записи к врачу на Python и Flask. У него одна страница ${k("/health")}, которая отвечает «ok» — по ней мониторинг проверяет, что сервис жив.</p>
+    <p>Создайте в новой папке три файла. Первый — само приложение.</p>
+  `,
+  challenges: [
+    { filename: "app.py", mode: "code",
+      why: "Маленькое приложение с проверочной страницей — такие эндпоинты есть почти у каждого сервиса в продакшене.",
+      code: `from flask import Flask
+
+app = Flask(__name__)
+
+
+@app.route("/health")
+def health():
+    return "ok"
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)`,
+      note: "host=\"0.0.0.0\" означает «слушать на всех сетевых интерфейсах» — для контейнера это обязательно." },
+    { filename: "requirements.txt", mode: "cmd",
+      why: "Список зависимостей фиксирует версии, чтобы сборка сегодня и через месяц давала одно и то же.",
+      code: `flask==3.0.3`,
+      note: "Двойной знак равенства — точная версия." }
+  ],
+  after: `
+    <p>Теперь рецепт сборки образа.</p>
+    <table class="t">
+      <tr><th>Инструкция</th><th>Что делает</th></tr>
+      <tr><td>${k("FROM")}</td><td>базовый образ, с которого всё начинается</td></tr>
+      <tr><td>${k("WORKDIR")}</td><td>рабочая папка внутри образа</td></tr>
+      <tr><td>${k("COPY")}</td><td>копирует файлы с вашего компьютера в образ</td></tr>
+      <tr><td>${k("RUN")}</td><td>выполняет команду при сборке (например, установку зависимостей)</td></tr>
+      <tr><td>${k("EXPOSE")}</td><td>документирует порт приложения</td></tr>
+      <tr><td>${k("CMD")}</td><td>команда, которая запускается при старте контейнера</td></tr>
+    </table>
+  `,
+  challenges2: [
+    { filename: "Dockerfile", mode: "code",
+      why: "Сначала копируем только requirements.txt и ставим зависимости, потом весь код — эта деталь скоро объяснит, зачем нужен порядок.",
+      code: `FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]`,
+      note: "Точка в COPY — это «текущая папка»: первая точка — откуда, вторая — куда." },
+    { filename: "terminal", mode: "cmd",
+      why: "docker build создаёт образ, docker run запускает из него контейнер. Тег после двоеточия — версия образа.",
+      code: `docker build -t clinic-api:1.0 .
+docker run -d --name clinic-api -p 5000:5000 clinic-api:1.0`,
+      note: "Точка в конце docker build — папка, где лежит Dockerfile." },
+    { calc: true, question: "На каком этапе DevOps-цикла выполняется docker build? (одно слово: Plan, Code, Build, Test, Release, Deploy, Operate или Monitor)", answer: "build",
+      why: "Сборка образа — это упаковка приложения в артефакт, как jar-файл в примере из первой темы.", note: "Подумайте, что делает эта команда: упаковывает приложение." },
+    { calc: true, question: "Приложение внутри контейнера слушает только 127.0.0.1. Будет ли оно доступно снаружи через проброшенный порт? (да / нет)", answer: "нет",
+      why: "Адрес 127.0.0.1 внутри контейнера — это его собственный «локальный хост», снаружи он недоступен.", note: "Вспомните, зачем в app.py указан host=\"0.0.0.0\"." },
+    { calc: true, question: "Какая инструкция Dockerfile задаёт команду запуска приложения? (одно слово)", answer: "cmd",
+      why: "RUN выполняется один раз при сборке образа, а CMD — при каждом запуске контейнера.", note: "См. таблицу выше." }
+  ],
+  after2: `
+    <div class="step"><div class="num">1</div><div class="txt">Соберите и запустите образ у себя, затем проверьте сервис командой ${k("curl http://localhost:5000/health")} — вы ей пользовались в теме про Linux. Ответ должен быть «ok».</div></div>
+  `
+},
+{
+  id: 5, tag: "Часть 5", title: "Слои, кеш и .dockerignore",
+  html: `
+    <p>Образ состоит из <b>слоёв</b>: каждая инструкция Dockerfile создаёт новый. Docker запоминает результат каждого слоя (кеш) и при пересборке
+    повторно использует всё, что не изменилось. Но как только изменился какой-то слой, <b>все слои после него</b> пересобираются заново.</p>
+    <p>Поэтому порядок инструкций — это вопрос скорости: то, что меняется редко (зависимости), ставят выше, а то, что меняется часто (код), — ниже. Посмотрите на плохой Dockerfile.</p>
+  `,
+  challenges: [
+    { calc: true, viewName: "Dockerfile", view: `FROM python:3.12-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "app.py"]`,
+      question: "Вы поменяли одну строку в app.py. С какой инструкции Docker начнёт пересборку без кеша? Впишите её целиком.", answers: ["COPY . .", "COPY . ./"],
+      why: "Кеш слоя COPY . . сбрасывается при любой правке файлов проекта — а вместе с ним и всё, что ниже.", note: "Ищите первую инструкцию, которая зависит от изменённого файла." },
+    { calc: true, question: "Из-за этого зависимости переустанавливаются при каждой правке кода. Какой файл нужно скопировать отдельно ДО инструкции COPY . .? (имя файла)", answer: "requirements.txt",
+      why: "Так слой с pip install получит собственный кеш и будет пересобираться, только если изменился список зависимостей.", note: "Такой порядок вы уже использовали в прошлой части." }
+  ],
+  after: `
+    <h3>Файл .dockerignore</h3>
+    <p>Он работает как ${k(".gitignore")}, но для Docker: перечисленные файлы не попадают в образ при ${k("COPY . .")}. Так образ остаётся маленьким, а секреты — в безопасности.</p>
+  `,
+  challenges2: [
+    { filename: ".dockerignore", mode: "cmd",
+      why: "История репозитория, кеш Python, логи и файл с паролями в образе не нужны.",
+      code: `.git
+__pycache__
+.env
+*.log`,
+      note: "По одному шаблону на строку." },
+    { calc: true, question: "Файл .env содержит пароли. Попадёт ли он в образ при COPY . ., если его нет в .dockerignore? (да / нет)", answer: "да",
+      why: "Образ потом могут опубликовать или скачать другие — секреты, попавшие в слой, оттуда уже не достать.", note: "COPY . . копирует всё, что не запрещено." }
+  ]
+},
+{
+  id: 6, tag: "Часть 6", title: "Переменные окружения и секреты",
+  html: `
+    <p>Один и тот же образ должен работать и у разработчика, и в продакшене — а значит, настройки (адрес базы, режим работы, пароли) нельзя вшивать в образ.
+    Их передают снаружи через <b>переменные окружения</b>.</p>
+    <table class="t">
+      <tr><th>Способ</th><th>Пример</th><th>Когда</th></tr>
+      <tr><td>Флаг ${k("-e")}</td><td>${k("-e APP_ENV=production")}</td><td>одна-две переменные</td></tr>
+      <tr><td>Файл ${k("--env-file")}</td><td>${k("--env-file app.env")}</td><td>много переменных или пароли</td></tr>
+      <tr><td>Инструкция ${k("ENV")}</td><td>${k("ENV APP_PORT=3000")}</td><td>безопасные значения по умолчанию, не секреты</td></tr>
+    </table>
+    <div class="callout warn"><span class="ct">Секреты и права доступа</span>Файл с паролями — это конфиденциальные данные. В теме про Linux вы ставили на такой файл права 600, чтобы читать и писать его мог только владелец. Здесь то же правило.</div>
+  `,
+  challenges: [
+    { filename: "terminal", mode: "cmd",
+      why: "Создаём файл с настройкой, закрываем его от посторонних и передаём контейнеру целиком.",
+      code: `echo "APP_ENV=production" > app.env
+chmod 600 app.env
+docker run --rm --env-file app.env alpine env`,
+      note: "Команда env внутри контейнера печатает все переменные окружения — среди них будет APP_ENV." },
+    { calc: true, question: "Какой флаг docker run читает переменные окружения из файла?", answers: ["--env-file", "env-file"],
+      why: "Так пароли не попадают в историю команд терминала.", note: "См. таблицу выше." },
+    { calc: true, question: "Права -rw------- в числовом виде — какое число? (число)", answer: "600",
+      why: "Именно такие права нужны файлу с конфиденциальными данными.", note: "r=4, w=2, x=1: считайте по группам — владелец, группа, остальные." },
+    { calc: true, question: "Можно ли писать пароль к базе данных в Dockerfile через ENV, если образ будут публиковать? (да / нет)", answer: "нет",
+      why: "Значение из ENV остаётся в образе, и любой, кто его скачает, увидит пароль командой docker history или docker inspect.", note: "Подумайте, кто сможет скачать опубликованный образ." }
+  ],
+  after: `
+    <h3>Составьте команду сами</h3>
+    <p>Теперь без образца. Запишите одну команду ${k("docker run")}, которая:</p>
+    <ul>
+      <li>запускает образ <b>nginx:alpine</b> в фоновом режиме;</li>
+      <li>называет контейнер <b>clinic-web</b>;</li>
+      <li>пробрасывает порт <b>8080</b> хоста на порт <b>80</b> контейнера;</li>
+      <li>передаёт переменную окружения <b>APP_ENV=production</b>.</li>
+    </ul>
+  `,
+  challenges2: [
+    { compose: "runCmd", question: "Впишите команду целиком, в одну строку.", rows: 3,
+      placeholder: "docker run ...",
+      why: "Собрать команду по описанию — то, что вам придётся делать в реальной работе, когда образца перед глазами нет.", note: "Флаги можно ставить в любом порядке, но образ — последним." }
+  ]
+},
+{
+  id: 7, tag: "Часть 7", title: "Тома: данные, которые не пропадают",
+  html: `
+    <p>Файловая система контейнера живёт, пока живёт сам контейнер: удалили контейнер — пропали и данные внутри. Для базы данных это катастрофа.
+    Поэтому данные выносят в <b>том</b> (volume) — отдельное хранилище, которым управляет Docker. Оно переживает удаление контейнера и подключается к новому.</p>
+    <div class="callout info"><span class="ct">Кто хранит базу данных</span>PostgreSQL хранит данные в папке ${k("/var/lib/postgresql/data")}. Именно её и подключают к тому. Обратите внимание на начало пути: директория ${k("/var")} — та самая, где в Linux лежат изменяемые данные.</div>
+  `,
+  challenges: [
+    { filename: "terminal", mode: "cmd",
+      why: "Создаём том, запускаем базу с подключённым томом, проверяем, что том существует.",
+      code: `docker volume create dbdata
+docker run -d --name clinic-db -e POSTGRES_PASSWORD=secret -v dbdata:/var/lib/postgresql/data postgres:16
+docker volume ls`,
+      note: "Формат -v: имя_тома:путь_внутри_контейнера." },
+    { calc: true, question: "Вы удалили контейнер командой docker rm. Данные в томе dbdata сохранятся? (да / нет)", answer: "да",
+      why: "В этом и смысл тома: можно пересоздать контейнер (например, с новой версией образа) и не потерять данные.", note: "Том живёт отдельно от контейнера." },
+    { calc: true, question: "А данные, записанные прямо в файловую систему контейнера без тома, после docker rm сохранятся или пропадут? (сохранятся / пропадут)", answers: ["пропадут", "пропадёт", "исчезнут"],
+      why: "Контейнер задуман как одноразовый: его можно удалить и поднять заново в любой момент.", note: "Подумайте, что удаляется вместе с контейнером." },
+    { calc: true, question: "В какой корневой директории Linux хранятся изменяемые данные: логи, базы данных, кеш? (введите путь)", answer: "/var",
+      why: "Знание структуры Linux помогает понимать, что именно нужно выносить в тома.", note: "Вспомните раздел «Файловая система Linux»." }
+  ]
+},
+{
+  id: 8, tag: "Часть 8", title: "Docker Compose",
+  html: `
+    <p>Реальное приложение — это несколько контейнеров: веб-сервер, приложение, база. Запускать каждый длинной командой неудобно и легко ошибиться.
+    <b>Docker Compose</b> позволяет описать все сервисы в одном файле ${k("compose.yaml")} и поднять их одной командой.</p>
+    <p>Файл написан на YAML: вложенность задаётся <b>отступами из пробелов</b> (табуляция не допускается), а после двоеточия обязателен пробел.</p>
+    <table class="t">
+      <tr><th>Команда</th><th>Что делает</th></tr>
+      <tr><td>${k("docker compose up -d")}</td><td>создаёт и запускает все сервисы в фоне</td></tr>
+      <tr><td>${k("docker compose ps")}</td><td>показывает состояние сервисов</td></tr>
+      <tr><td>${k("docker compose logs")}</td><td>логи всех сервисов</td></tr>
+      <tr><td>${k("docker compose down")}</td><td>останавливает и удаляет контейнеры и сети проекта</td></tr>
+    </table>
+  `,
+  challenges: [
+    { filename: "compose.yaml", mode: "yaml",
+      why: "Один файл вместо нескольких длинных команд. Его можно хранить в репозитории рядом с кодом — это и есть «инфраструктура как код».",
+      code: `services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+  api:
+    build: .
+    environment:
+      APP_ENV: production`,
+      note: "Внимательно с отступами: два пробела на каждый уровень вложенности." },
+    { calc: true, question: "Сколько контейнеров запустит docker compose up для этого файла? (число)", answer: "2",
+      why: "Каждый ключ внутри services — отдельный сервис, а значит, отдельный контейнер.", note: "Считайте ключи внутри services." },
+    { calc: true, question: "Что делает depends_on: web ждёт запуска api или api ждёт запуска web? (напишите: web ждёт или api ждёт)", answers: ["web ждёт", "web ждет"],
+      why: "Порядок запуска важен: приложение не должно стартовать раньше базы данных, от которой оно зависит.", note: "Сервис, у которого написан depends_on, зависит от перечисленных." },
+    { calc: true, question: "Какой флаг добавляют к docker compose up, чтобы сервисы запустились в фоне?", answers: ["-d", "--detach"],
+      why: "Тот же смысл, что у docker run -d.", note: "Он есть в таблице выше." },
+    { calc: true, question: "Чем задаются отступы в YAML: пробелами или табуляцией? (одно слово)", answers: ["пробелами", "пробелы", "пробел"],
+      why: "Файл с табуляцией в отступах Docker Compose отклонит с ошибкой.", note: "Настройте редактор, чтобы Tab вставлял пробелы." }
+  ]
+},
+{
+  id: 9, tag: "Часть 9", title: "Соберите с нуля",
+  html: `
+    <p>Образцов больше нет: только описание. Проверка смотрит на смысл, а не на точное совпадение текста — можно расставить элементы иначе, если результат получается верным.</p>
+    <h3>Задача 1. Dockerfile для Node.js</h3>
+    <p>Сервис записи переписали на Node.js. Составьте ${k("Dockerfile")}:</p>
+    <ul>
+      <li>базовый образ <b>node:20-alpine</b>;</li>
+      <li>рабочая папка <b>/app</b>;</li>
+      <li>сначала копируются только файлы <b>package*.json</b>, затем ставятся зависимости командой <b>npm install</b>;</li>
+      <li>после этого копируется весь код проекта;</li>
+      <li>документируется порт <b>3000</b>;</li>
+      <li>запуск командой <b>node server.js</b> в exec-форме (JSON-массив).</li>
+    </ul>
+  `,
+  challenges: [
+    { compose: "clinicDockerfile", question: "Впишите Dockerfile целиком.", rows: 10,
+      placeholder: "FROM ...",
+      why: "Если вы понимаете, почему инструкции идут именно в таком порядке, вы понимаете Docker.", note: "Подсказка про порядок — в описании выше и в части 5." }
+  ],
+  after: `
+    <h3>Задача 2. compose.yaml</h3>
+    <p>Составьте ${k("compose.yaml")} для записи к врачу из двух сервисов:</p>
+    <ul>
+      <li><b>web</b>: образ <b>nginx:alpine</b>, порт <b>8080</b> хоста на порт <b>80</b> контейнера, запускается после <b>db</b>;</li>
+      <li><b>db</b>: образ <b>postgres:16</b>, переменная <b>POSTGRES_PASSWORD</b> со значением <b>secret</b>, том <b>dbdata</b> подключён к <b>/var/lib/postgresql/data</b>;</li>
+      <li>том <b>dbdata</b> объявлен и на верхнем уровне файла.</li>
+    </ul>
+  `,
+  challenges2: [
+    { compose: "clinicCompose", question: "Впишите compose.yaml целиком.", rows: 20,
+      placeholder: "services:",
+      why: "Один файл описывает сразу приложение, базу, сеть и хранилище — это и есть инфраструктура как код.", note: "Не забудьте про отступы из пробелов и про объявление тома в конце файла." }
+  ]
+},
+{
+  id: 10, tag: "Часть 10", title: "Диагностика инцидента",
+  html: `
+    <p>Сервис записи к врачу упал. Работа инженера на этапах <b>Operate</b> и <b>Monitor</b> — быстро понять причину по сообщениям об ошибках. Разберите три ситуации.</p>
+    <h3>Ситуация 1. Контейнер не запускается</h3>
+  `,
+  challenges: [
+    { calc: true, viewName: "терминал", view: `$ docker run -d --name clinic-web -p 8080:80 nginx:alpine
+docker: Error response from daemon: driver failed programming external
+connectivity on endpoint clinic-web: Bind for 0.0.0.0:8080 failed:
+port is already allocated.`,
+      question: "Какой порт хоста уже занят? (число)", answer: "8080",
+      why: "Сообщение об ошибке почти всегда содержит причину — её нужно уметь найти.", note: "Ищите фразу «port is already allocated»." },
+    { calc: true, question: "Первый контейнер трогать нельзя. Какой порт нужно изменить в -p, чтобы запустить второй рядом: порт хоста или порт контейнера? (хоста / контейнера)", answers: ["хоста", "порт хоста", "хост"],
+      why: "Порт внутри контейнера изолирован, конфликтовать могут только порты хоста.", note: "Внутри каждого контейнера свой набор портов." }
+  ],
+  after: `<h3>Ситуация 2. Контейнер сразу падает</h3>`,
+  challenges2: [
+    { calc: true, viewName: "docker logs clinic-api", view: `Traceback (most recent call last):
+  File "/app/app.py", line 1, in <module>
+    from flask import Flask
+ModuleNotFoundError: No module named 'flask'`,
+      question: "Какого модуля не хватает в образе? (одно слово)", answer: "flask",
+      why: "Логи контейнера — первое место, куда смотрят при падении.", note: "Смотрите последнюю строку ошибки." },
+    { calc: true, question: "Какую инструкцию Dockerfile нужно добавить, чтобы модуль установился при сборке образа? (RUN, CMD или EXPOSE)", answer: "run",
+      why: "Установка зависимостей — это действие при сборке, а не при запуске.", note: "Вспомните, чем RUN отличается от CMD." }
+  ],
+  after2: `<h3>Ситуация 3. Восстановление</h3>
+    <p>После сбоя контейнер перезапустился и сервис снова отвечает — на это ушло 40 секунд.</p>`,
+  challenges3: [
+    { calc: true, question: "Какая метрика DORA измеряет, как быстро система восстанавливается после сбоя? (аббревиатура из четырёх букв)", answer: "MTTR",
+      why: "Возвращаясь к первой теме: MTTR у элитных команд — менее часа. Контейнеры и автоматизация помогают уложиться.", note: "Mean Time to Recover." }
+  ]
+},
+{
+  id: 11, tag: "Финал", title: "Итог", final: true,
+  html: `
+    <p>Вы прошли весь путь: от первой команды ${k("docker run")} до собственного Dockerfile и файла ${k("compose.yaml")}, который поднимает несколько сервисов одновременно.</p>
+    <div class="callout ok"><span class="ct">Что вы теперь умеете</span>Объяснять, чем контейнер отличается от виртуальной машины и образа. Запускать контейнеры с портами и переменными окружения. Читать логи и находить причину падения по коду завершения. Собирать образ из Dockerfile и понимать роль слоёв и кеша. Хранить данные в томах. Описывать несколько сервисов в compose.yaml.</div>
+    <h3>Как всё связано с DevOps-циклом</h3>
+    <ul>
+      <li><b>Build</b> — docker build упаковывает приложение в образ.</li>
+      <li><b>Deploy</b> — docker run и docker compose up доставляют образ туда, где он работает.</li>
+      <li><b>Operate</b> — логи, перезапуск, тома и переменные окружения.</li>
+      <li><b>Monitor</b> — проверочная страница /health и коды завершения показывают, что сервис жив.</li>
+    </ul>
+    <h3>Что дальше по курсу</h3>
+    <ul>
+      <li>CI/CD: автоматическая сборка и проверка образа при каждом коммите.</li>
+      <li>Публикация образа в реестр и деплой на сервер.</li>
+      <li>Мониторинг и алерты по работающим контейнерам.</li>
+    </ul>
+    <h3>Что можно докрутить самостоятельно</h3>
+    <ul>
+      <li>Добавить в compose.yaml сервис приложения из части 4 и проверить его через curl.</li>
+      <li>Посмотреть слои образа командой ${k("docker history clinic-api:1.0")} и найти самый большой.</li>
+    </ul>
+  `,
+  challenges: []
+}
+];
+
+
+/* ============================ СОСТОЯНИЕ ============================ */
+const STORAGE_KEY = "ithub-devops-docker-practicum-progress-v1";
+const PRACTICUM_NAME = "Docker для DevOps";
+let state = { current: 0, solved: {}, student: null, autoSubmitted: false, timings: {}, attempts: {}, suspicious: {} };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch (e) { /* нет доступа к storage — работаем в памяти */ }
+  if (!state.timings) state.timings = {};
+  if (!state.attempts) state.attempts = {};
+  if (!state.suspicious) state.suspicious = {};
+  if (!state.solved) state.solved = {};
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function resetProgress() {
+  if (!confirm("Сбросить весь прогресс? Группу и имя нужно будет выбрать заново.")) return;
+  state = { current: 0, solved: {}, student: null, autoSubmitted: false, timings: {}, attempts: {}, suspicious: {} };
+  saveState();
+  render();
+}
+
+/* ============================ ЗАДАНИЯ ЧАСТИ ============================ */
+// Три группы заданий в части: challenges, challenges2, challenges3 (между ними — after, after2, after3)
+const GROUPS = [
+  { list: "challenges", tag: "", after: "after" },
+  { list: "challenges2", tag: "b", after: "after2" },
+  { list: "challenges3", tag: "c", after: "after3" }
+];
+function keyOf(partId, tag, i) { return tag ? `${partId}:${tag}${i}` : `${partId}:${i}`; }
+function getChallenge(partId, idx) {
+  const part = PARTS.find(p => p.id === partId);
+  if (typeof idx === "string") {
+    const g = GROUPS.find(x => x.tag && idx.startsWith(x.tag));
+    return part[g.list][parseInt(idx.slice(1), 10)];
+  }
+  return part.challenges[idx];
+}
+function isPartComplete(part) {
+  for (const g of GROUPS) {
+    const list = part[g.list] || [];
+    for (let i = 0; i < list.length; i++) if (!state.solved[keyOf(part.id, g.tag, i)]) return false;
+  }
+  return true;
+}
+
+/* ============================ ВХОД: ГРУППА → СТУДЕНТ ============================ */
+/* Названия групп записаны кодами, чтобы русская «Р» точно совпадала с буквой в таблице ответов. */
+const G1 = "3\u04201";
+const G2 = "3\u04202";
+const ROSTER = {};
+ROSTER[G1] = [
+  "Абдулкеримов Али Арсенович",
+  "Айгунов Магомед Магомед-Сайгидович",
+  "Аппазов Руслан Алилович",
+  "Ашаханова Фатима Махмудапандиевна",
+  "Гаджиев Хабибулла Рашидович",
+  "Гайдарбеков Абдулхаким Имамутдинович",
+  "Гусейнов Мурад Ибрагимович",
+  "Гюльметова Арина Руслановна",
+  "Заидова Хадижат Магомедрасуловна",
+  "Исаев Магомед Асхабалиевич",
+  "Исмаилов Саид Маратович",
+  "Магомедов Иса Магомедович",
+  "Малачиев Абакар Газиевич",
+  "Мамедьяров Вагид Заурович",
+  "Маркулов Ислам Рамазанович",
+  "Муртазаалиев Ибрагим Газимирзаевич",
+  "Нурмагомедов Амир Элмурадович",
+  "Омаров Мухаммад Османович",
+  "Рамазанов Исмаил Алиевич",
+  "Шарифов Алимурад Вагидович"
+];
+ROSTER[G2] = [
+  "Абакаров Магомед Шарапудинович",
+  "Абудалаев Саадула Баширович",
+  "Абулова Аиша Абулмуслимовна",
+  "Алиагаев Камиль Агабалаевич",
+  "Алиев Даниял Алимурадович",
+  "Зейнудинова Аминат Азимовна",
+  "Лабазанов Магомед Шамильевич",
+  "Магомедов Багаудин Идрисович",
+  "Магомедов Рашид Османович",
+  "Магомедов Умар Магомедович",
+  "Магомедова Амина Мирзахановна",
+  "Набиев Мухаммад Рамазанович",
+  "Овчинников Эмиль Михайлович",
+  "Пашаев Паша Абдулаевич",
+  "Рамазанов Саид Набигюлахович",
+  "Тедуров Тимур Тедуриевич",
+  "Хабибов Хаджимурад Шамилович",
+  "Хачаев Абдула Абдулович",
+  "Шабанов Гаджимурад Муслимович",
+  "Шапиева Умурахим Магомедалиевна",
+  "Шихшаев Гарун Герасимович"
+];
+const VAL_OTHER_GROUP = "__other";   // «Другая группа» — имя и группу студент вводит сам
+const VAL_NOT_IN_LIST = "__manual";  // «Меня нет в списке» внутри выбранной группы — вводится только имя
+
+function renderGate(err) {
+  const app = document.getElementById("app");
+  document.getElementById("studentLabel").textContent = "";
+  const groupOpts = Object.keys(ROSTER).map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+  app.innerHTML = `
+    <div class="gate">
+      <div class="card">
+        <h2 style="margin-top:0;">Прежде чем начать</h2>
+        <p>Выберите группу и найдите себя в списке — эти данные попадут в итоговый отчёт для преподавателя.</p>
+        <label class="gate-label" for="gateGroup">Группа</label>
+        <select id="gateGroup" onchange="onGateGroup()">
+          <option value="">Выберите группу…</option>
+          ${groupOpts}
+          <option value="${VAL_OTHER_GROUP}">Другая группа…</option>
+        </select>
+        <div id="gateStudentWrap" hidden>
+          <label class="gate-label" for="gateStudent">Студент</label>
+          <select id="gateStudent" onchange="onGateStudent()"></select>
+        </div>
+        <div id="gateManualWrap" hidden>
+          <label class="gate-label" for="gateName">Имя и фамилия</label>
+          <input id="gateName" type="text" placeholder="Например: Иванов Иван" autocomplete="off">
+          <div id="gateGroupManualWrap" hidden>
+            <label class="gate-label" for="gateGroupManual">Ваша группа</label>
+            <input id="gateGroupManual" type="text" placeholder="Например: 3Р3" autocomplete="off">
+          </div>
+        </div>
+        <button class="gate-btn" onclick="submitGate()">Начать практикум</button>
+        <div class="gate-err" id="gateErr">${err || ""}</div>
+      </div>
+    </div>
+  `;
+}
+function onGateGroup() {
+  const g = document.getElementById("gateGroup").value;
+  const sWrap = document.getElementById("gateStudentWrap");
+  const mWrap = document.getElementById("gateManualWrap");
+  const gmWrap = document.getElementById("gateGroupManualWrap");
+  document.getElementById("gateErr").textContent = "";
+  if (g === "") { sWrap.hidden = true; mWrap.hidden = true; return; }
+  if (g === VAL_OTHER_GROUP) {
+    sWrap.hidden = true; mWrap.hidden = false; gmWrap.hidden = false;
+    document.getElementById("gateName").focus();
+    return;
+  }
+  const sel = document.getElementById("gateStudent");
+  sel.innerHTML = `<option value="">Выберите себя в списке…</option>` +
+    ROSTER[g].map((n, i) => `<option value="${i}">${escapeHtml(n)}</option>`).join("") +
+    `<option value="${VAL_NOT_IN_LIST}">— Меня нет в списке —</option>`;
+  sWrap.hidden = false; mWrap.hidden = true; gmWrap.hidden = true;
+}
+function onGateStudent() {
+  const v = document.getElementById("gateStudent").value;
+  const mWrap = document.getElementById("gateManualWrap");
+  document.getElementById("gateErr").textContent = "";
+  document.getElementById("gateGroupManualWrap").hidden = true;
+  if (v === VAL_NOT_IN_LIST) { mWrap.hidden = false; document.getElementById("gateName").focus(); }
+  else mWrap.hidden = true;
+}
+function gateError(text) { document.getElementById("gateErr").textContent = text; }
+function submitGate() {
+  const g = document.getElementById("gateGroup").value;
+  if (g === "") { gateError("Сначала выберите группу."); return; }
+  let name, group, manual;
+  if (g === VAL_OTHER_GROUP) {
+    name = document.getElementById("gateName").value.trim();
+    group = document.getElementById("gateGroupManual").value.trim();
+    manual = true;
+    if (!name || !group) { gateError("Впишите имя, фамилию и группу."); return; }
+  } else {
+    const v = document.getElementById("gateStudent").value;
+    if (v === "") { gateError("Выберите себя в списке студентов."); return; }
+    group = g;
+    if (v === VAL_NOT_IN_LIST) {
+      name = document.getElementById("gateName").value.trim();
+      manual = true;
+      if (!name) { gateError("Впишите имя и фамилию."); return; }
+    } else {
+      name = ROSTER[g][parseInt(v, 10)];
+      manual = false;
+    }
+  }
+  state.student = { name, group, manual };
+  saveState();
+  render();
+}
+
+/* ============================ ОТПРАВКА В GOOGLE ФОРМУ ============================ */
+/* ┌──────────────────────────────────────────────────────────────────────────┐
+   │ НАСТРОЙКА (сделать один раз до выдачи студентам):                         │
+   │ 1. Создайте Google-форму «Отчёты по практикуму Docker» с 4 полями         │
+   │    «Ответ (короткий)»: Имя и Фамилия, Группа, Статус, Решено заданий      │
+   │    (именно в таком порядке — тогда в таблице ответов группа будет в       │
+   │    колонке C, и формулы листов по группам заработают).                    │
+   │ 2. Меню ⋮ → «Получить ссылку для предзаполнения» → заполните каждое поле  │
+   │    любым текстом → «Получить ссылку» → скопируйте её.                      │
+   │ 3. В ссылке найдите четыре параметра entry.ЦИФРЫ — впишите их ниже        │
+   │    по порядку полей. В GOOGLE_FORM_ACTION вставьте адрес формы,           │
+   │    заменив в конце /viewform… на /formResponse.                            │
+   │ Пока это не сделано, отчёт можно отправить кнопкой «Скопировать текстом». │
+   └──────────────────────────────────────────────────────────────────────────┘ */
+const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSf-oDzlflJWdtmFOU-XIKhpG36GVX1guDll0fK_kB0l7GZqiQ/formResponse";
+const GOOGLE_FORM_ENTRIES = {
+  name: "entry.1137173507",
+  group: "entry.946719112",
+  status: "entry.1734041819",
+  tasks: "entry.280989336"
+};
+const EXPECTED_HOST = "koroglu1990.github.io";
+function sourceIsTrusted() {
+  return location.hostname === EXPECTED_HOST;
+}
+function formConfigured() {
+  return /^https:\/\/docs\.google\.com\/forms\/d\/e\/[A-Za-z0-9_-]+\/formResponse$/.test(GOOGLE_FORM_ACTION) &&
+    Object.values(GOOGLE_FORM_ENTRIES).every(v => /^entry\.\d+$/.test(v)) &&
+    !Object.values(GOOGLE_FORM_ENTRIES).some(v => /^entry\.0+\d$/.test(v));
+}
+function collectWorkStats() {
+  let totalSeconds = 0, totalAttempts = 0;
+  const suspiciousFiles = [];
+  PARTS.forEach(p => {
+    GROUPS.forEach(g => (p[g.list] || []).forEach((ch, i) => {
+      const key = keyOf(p.id, g.tag, i);
+      if (state.solved[key]) {
+        totalSeconds += (state.timings[key] && state.timings[key].elapsedSeconds) || 0;
+        totalAttempts += state.attempts[key] || 0;
+        if (state.suspicious[key]) suspiciousFiles.push(ch.filename || `часть ${p.id}, ответ ${i + 1}`);
+      }
+    }));
+  });
+  return { totalSeconds, totalAttempts, suspiciousFiles };
+}
+function reportFields() {
+  const total = PARTS.length;
+  let solvedCount = 0, totalChallenges = 0;
+  PARTS.forEach(p => {
+    GROUPS.forEach(g => (p[g.list] || []).forEach((_, i) => { totalChallenges++; if (state.solved[keyOf(p.id, g.tag, i)]) solvedCount++; }));
+  });
+  const finished = state.current === total - 1 && isPartComplete(PARTS[total - 1]);
+  let status = finished ? `Практикум «${PRACTICUM_NAME}»: пройден полностью` : `Практикум «${PRACTICUM_NAME}»: дошёл до части ${state.current + 1} из ${total}`;
+  const work = collectWorkStats();
+  status += ` | время работы: ${formatDuration(work.totalSeconds)} | ошибочных попыток: ${work.totalAttempts}`;
+  if (state.student.manual) status += ` | вход вручную (нет в списке)`;
+  if (work.suspiciousFiles.length > 0) {
+    status += ` | ⚠ возможна вставка в: ${work.suspiciousFiles.join(", ")}`;
+  }
+  if (!integrityOk()) {
+    status += ` | ⚠⚠ код проверки был изменён через консоль браузера`;
+  }
+  if (!sourceIsTrusted()) {
+    status = `⚠ ИЗМЕНЁННАЯ КОПИЯ (открыто с ${location.hostname || "локального файла"}) — ` + status;
+  }
+  return { name: state.student.name, group: state.student.group, status, tasks: `${solvedCount} из ${totalChallenges}` };
+}
+function submitToGoogleForm() {
+  if (!state.student || !formConfigured()) return false;
+  const fields = reportFields();
+  const iframeName = "gform-submit-frame";
+  let iframe = document.getElementById(iframeName);
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = iframeName;
+    iframe.id = iframeName;
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+  const form = document.createElement("form");
+  form.action = GOOGLE_FORM_ACTION;
+  form.method = "POST";
+  form.target = iframeName;
+  form.style.display = "none";
+  Object.keys(GOOGLE_FORM_ENTRIES).forEach(key => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = GOOGLE_FORM_ENTRIES[key];
+    input.value = fields[key];
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  setTimeout(() => form.remove(), 1500);
+  return true;
+}
+function sendReport(btnId) {
+  const sent = submitToGoogleForm();
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.textContent = sent ? "✓ Отправлено преподавателю" : "Форма не настроена — нажмите «Скопировать текстом»";
+    if (sent) btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Отправить преподавателю"; btn.classList.remove("copied"); }, 3500);
+  }
+}
+
+/* ============================ ОТЧЁТ (ТЕКСТ, РЕЗЕРВНЫЙ СПОСОБ) ============================ */
+function buildReport() {
+  const f = reportFields();
+  const work = collectWorkStats();
+  const dtStr = new Date().toLocaleString("ru-RU");
+  let text = `Отчёт о выполнении практикума «${PRACTICUM_NAME}»
+Студент: ${f.name}
+Группа: ${f.group}
+Дата: ${dtStr}
+Статус: ${f.status.split(" | ")[0]}
+Заданий решено: ${f.tasks}
+Суммарное время работы над заданиями: ${formatDuration(work.totalSeconds)}
+Ошибочных попыток проверки: ${work.totalAttempts}`;
+  if (state.student.manual) text += `\nВход выполнен вручную: студента нет в списке группы`;
+  if (work.suspiciousFiles.length > 0) {
+    text += `\n⚠ Похоже на вставку текста, а не печать, в заданиях: ${work.suspiciousFiles.join(", ")}`;
+  }
+  if (!integrityOk()) {
+    text += `\n⚠⚠ Обнаружено изменение кода проверки через консоль браузера в этой сессии`;
+  }
+  return text;
+}
+function copyReport(btnId) {
+  const text = buildReport();
+  const btn = document.getElementById(btnId || "copyReportBtn");
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✓ Скопировано";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Скопировать текстом (запасной способ)"; btn.classList.remove("copied"); }, 2500);
+  }).catch(() => {
+    btn.textContent = "Не получилось — выделите текст выше вручную";
+  });
+}
+
+let reportModalOpen = false;
+function toggleReportModal(open) {
+  if (!state.student) return;
+  reportModalOpen = open;
+  renderReportModal();
+}
+function renderReportModal() {
+  let existing = document.getElementById("reportModal");
+  if (existing) existing.remove();
+  if (!reportModalOpen) return;
+  const div = document.createElement("div");
+  div.id = "reportModal";
+  div.className = "modal-overlay";
+  div.onclick = (e) => { if (e.target === div) toggleReportModal(false); };
+  div.innerHTML = `
+    <div class="modal-card">
+      <button class="modal-close" onclick="toggleReportModal(false)">✕</button>
+      <h3 style="margin-top:0;">Отчёт о прогрессе на сейчас</h3>
+      <p style="font-size:12.5px;">Можно отправить преподавателю в любой момент, даже если практикум ещё не пройден до конца.</p>
+      <div class="report-box selectable">${escapeHtml(buildReport())}</div>
+      <button class="copy-btn" id="sendReportBtnModal" onclick="sendReport('sendReportBtnModal')">Отправить преподавателю</button>
+      <button class="copy-btn" id="copyReportBtnModal" onclick="copyReport('copyReportBtnModal')" style="background:transparent;color:var(--brand);border:1.5px solid var(--border);">Скопировать текстом (запасной способ)</button>
+    </div>
+  `;
+  document.body.appendChild(div);
+}
+
+/* ============================ ПРОВЕРКА ЗАДАНИЙ ============================ */
+let keydownCounts = {}; // в памяти, не сохраняется — намеренно: перезагрузка = заново печатать
+function bumpKeydown(key, e) {
+  keydownCounts[key] = (keydownCounts[key] || 0) + 1;
+  // Tab в поле кода вставляет два пробела, а не уводит курсор из поля
+  if (e && e.key === "Tab" && e.target && e.target.tagName === "TEXTAREA" && !e.target.readOnly) {
+    e.preventDefault();
+    const t = e.target, s = t.selectionStart;
+    t.value = t.value.slice(0, s) + "  " + t.value.slice(t.selectionEnd);
+    t.selectionStart = t.selectionEnd = s + 2;
+  }
+}
+
+function checkChallenge(partId, idx) {
+  const key = `${partId}:${idx}`;
+  const ta = document.getElementById(`ta-${partId}-${idx}`);
+  const msg = document.getElementById(`msg-${partId}-${idx}`);
+  const ch = getChallenge(partId, idx);
+  const raw = ta.value;
+
+  let res;
+  if (ch.calc) res = checkCalc(ch, raw);
+  else if (ch.compose) res = COMPOSE_CHECKERS[ch.compose](raw);
+  else res = checkTyped(ch, raw);
+
+  if (res.ok) {
+    state.solved[key] = true;
+    const startedAt = state.timings[key] ? state.timings[key].startedAt : Date.now();
+    const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    const kd = keydownCounts[key] || 0;
+    state.timings[key] = { startedAt, elapsedSeconds };
+    state.suspicious[key] = raw.length > 15 && kd < raw.length * 0.3;
+    if (ch.compose) { if (!state.composeText) state.composeText = {}; state.composeText[key] = raw; }
+    saveState();
+    msg.className = "result-msg ok";
+    msg.textContent = ch.calc ? "✓ Верно! Можно двигаться дальше." : (ch.compose ? "✓ Всё сходится с описанием! Отлично." : "✓ Совпадает! Можно двигаться дальше.");
+    render();
+  } else {
+    state.attempts[key] = (state.attempts[key] || 0) + 1;
+    saveState();
+    msg.className = "result-msg err";
+    msg.textContent = res.msg || "✗ Пока не совпадает.";
+  }
+}
+
+/* ============================ РЕНДЕР ============================ */
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function codeBoxHtml(label, code, viewOnly) {
+  const lines = String(code).split("\n");
+  const body = lines.map((l, i) => `<span class="ln">${i + 1}</span>${escapeHtml(l)}`).join("\n");
+  return `${label ? `<span class="codebox-label">${escapeHtml(label)}</span>` : ""}<div class="codebox${viewOnly ? " view" : ""}" oncopy="return false" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">${body}</div>`;
+}
+function formatDuration(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m > 0 ? `${m} мин ${s} сек` : `${s} сек`;
+}
+function doneBadge(key) {
+  const t = state.timings[key];
+  return `<span class="done-badge">✓ Сделано${t && t.elapsedSeconds ? ` · ${formatDuration(t.elapsedSeconds)}` : ""}${state.attempts[key] ? ` · попыток: ${state.attempts[key] + 1}` : ""}${state.suspicious[key] ? ` · <span style="color:var(--err-text);">возможна вставка</span>` : ""}</span>`;
+}
+function renderChallenge(part, ch, i, tag) {
+  const idx = tag ? `${tag}${i}` : i;
+  const key = keyOf(part.id, tag, i);
+  const taId = `ta-${part.id}-${idx}`;
+  const msgId = `msg-${part.id}-${idx}`;
+  const solved = !!state.solved[key];
+  if (!solved && !state.timings[key]) {
+    state.timings[key] = { startedAt: Date.now() };
+    saveState();
+  }
+  const idxArg = typeof idx === "string" ? `'${idx}'` : idx;
+  const guards = `onpaste="return false" ondrop="return false" oncontextmenu="return false" onkeydown="bumpKeydown('${key}', event)"`;
+  const actions = `
+    <div class="row2">
+      ${solved ? doneBadge(key) : `<button class="check-btn" onclick="checkChallenge(${part.id}, ${idxArg})">Проверить</button><span class="result-msg" id="${msgId}"></span>`}
+    </div>`;
+  const why = ch.why ? `<p class="why-box">🎯 ${escapeHtml(ch.why)}</p>` : "";
+  const note = ch.note ? `<p style="font-size:12px;color:var(--text-dim);margin-top:6px;">💡 ${escapeHtml(ch.note)}</p>` : "";
+
+  if (ch.calc) {
+    const answerValue = solved ? escapeHtml(String(ch.answers ? ch.answers[0] : ch.answer)) : "";
+    return `
+      <div class="challenge">
+        ${why}
+        ${ch.view ? codeBoxHtml(ch.viewName || "", ch.view, true) : ""}
+        <p style="font-weight:600; color:var(--brand-dark); margin:8px 0;">${escapeHtml(ch.question)}</p>
+        ${ch.note ? `<p style="font-size:12px;color:var(--text-dim);margin-top:-4px;margin-bottom:8px;">💡 ${escapeHtml(ch.note)}</p>` : ""}
+        <input type="text" id="${taId}" placeholder="Впишите ответ..." style="width:100%; padding:10px 12px; font-family:'SFMono-Regular',Menlo,monospace; font-size:14px; border-radius:8px; border:1.5px solid var(--border); background:var(--panel); color:var(--text);" onpaste="return false" ondrop="return false" oncontextmenu="return false" onkeydown="bumpKeydown('${key}', event)" ${solved ? "readonly" : ""} value="${answerValue}">
+        ${actions}
+      </div>`;
+  }
+  if (ch.compose) {
+    return `
+      <div class="challenge">
+        ${why}
+        <p style="font-weight:600; color:var(--brand-dark); margin:8px 0;">${escapeHtml(ch.question)}</p>
+        ${note}
+        <textarea id="${taId}" spellcheck="false" autocomplete="off" autocapitalize="off" style="min-height:${(ch.rows || 12) * 19}px" placeholder="${escapeHtml(ch.placeholder || "")}" ${guards} ${solved ? "readonly" : ""}>${solved ? escapeHtml(state.composeText && state.composeText[key] || "✓ принято") : ""}</textarea>
+        ${actions}
+      </div>`;
+  }
+  const shownCode = ch.shown || ch.code;
+  return `
+    <div class="challenge">
+      ${why}
+      ${codeBoxHtml(ch.filename, shownCode)}
+      ${note}
+      <textarea id="${taId}" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Впишите код сюда вручную..." ${guards} ${solved ? "readonly" : ""}>${solved ? escapeHtml(ch.code) : ""}</textarea>
+      ${actions}
+    </div>`;
+}
+
+function render() {
+  if (!state.student) { renderGate(); return; }
+  document.getElementById("studentLabel").textContent = `${state.student.name} · ${state.student.group}`;
+  const part = PARTS[state.current];
+  const app = document.getElementById("app");
+  const total = PARTS.length;
+  const complete = isPartComplete(part);
+
+  let bodyHtml = "";
+  GROUPS.forEach(g => {
+    const list = part[g.list] || [];
+    bodyHtml += list.map((ch, i) => renderChallenge(part, ch, i, g.tag)).join("");
+    bodyHtml += part[g.after] || "";
+  });
+
+  const reportHtml = part.final ? `
+    <h3>Отчёт для преподавателя</h3>
+    <p>Отправьте отчёт преподавателю — это подтверждение, что практикум пройден.</p>
+    <div class="report-box selectable">${escapeHtml(buildReport())}</div>
+    <button class="copy-btn" id="sendReportBtn" onclick="sendReport('sendReportBtn')">Отправить преподавателю</button>
+    <button class="copy-btn" id="copyReportBtn" onclick="copyReport()" style="background:transparent;color:var(--brand);border:1.5px solid var(--border);">Скопировать текстом (запасной способ)</button>
+    <p style="font-size:11px;color:var(--text-dim);margin-top:8px;">При переходе на эту страницу отчёт отправляется автоматически. Кнопка нужна, если хотите отправить ещё раз или что-то пошло не так.</p>
+  ` : "";
+
+  app.innerHTML = `
+    <div class="card">
+      <span class="tag">${escapeHtml(part.tag)}</span>
+      <h2>${escapeHtml(part.title)}</h2>
+      ${part.html}
+      ${bodyHtml}
+      ${reportHtml}
+      <div class="nav-row">
+        <button class="nav-btn secondary" onclick="goPrev()" ${state.current === 0 ? "disabled" : ""}>← Назад</button>
+        <button class="nav-btn" onclick="goNext()" ${(!complete || state.current === total - 1) ? "disabled" : ""}>
+          ${state.current === total - 1 ? "Это финал" : (complete ? "Далее →" : "Выполните задания выше, чтобы продолжить")}
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Содержание</h3>
+      <div class="toc">
+        ${PARTS.map((p, i) => {
+          const done = isPartComplete(p) && i < state.current;
+          const cls = i === state.current ? "current" : (done ? "complete" : (i > state.current && !allPriorComplete(i) ? "locked" : ""));
+          return `<div class="toc-item ${cls}" onclick="${(i <= state.current || allPriorComplete(i)) ? `goTo(${i})` : ''}">
+            <span class="toc-num">${done ? "✓" : i + 1}</span>
+            <span class="toc-title">${escapeHtml(p.title)}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  const pct = Math.round((state.current / (total - 1)) * 100);
+  document.getElementById("progressFill").style.width = `${pct}%`;
+  document.getElementById("progressText").textContent = `Часть ${state.current + 1} из ${total}`;
+  document.getElementById("progressPct").textContent = `${pct}%`;
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function allPriorComplete(i) {
+  for (let k = 0; k < i; k++) if (!isPartComplete(PARTS[k])) return false;
+  return true;
+}
+function goNext() {
+  if (!isPartComplete(PARTS[state.current])) return;
+  if (state.current < PARTS.length - 1) {
+    state.current++;
+    if (state.current === PARTS.length - 1 && !state.autoSubmitted) {
+      if (submitToGoogleForm()) state.autoSubmitted = true;
+    }
+    saveState();
+    render();
+  }
+}
+function goPrev() {
+  if (state.current > 0) { state.current--; saveState(); render(); }
+}
+function goTo(i) {
+  if (i <= state.current || allPriorComplete(i)) { state.current = i; saveState(); render(); }
+}
+
+/* ============================ ЗАЩИТА ОТ КОПИРОВАНИЯ ============================ */
+document.addEventListener("copy", function (e) {
+  const active = document.activeElement;
+  if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) return; // в полях ввода копировать можно
+  e.preventDefault();
+});
+document.addEventListener("contextmenu", function (e) {
+  const active = document.activeElement;
+  if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) return;
+  e.preventDefault();
+});
+document.addEventListener("keydown", function (e) {
+  const active = document.activeElement;
+  const inField = active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT");
+  const key = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && (key === "c" || key === "u") && !inField) {
+    e.preventDefault();
+  }
+  if ((e.ctrlKey || e.metaKey) && key === "s") { e.preventDefault(); }
+});
+
+/* ============================ ПРОВЕРКА ЦЕЛОСТНОСТИ КОДА ============================ */
+// Если студент через консоль браузера подменит функции проверки (например, попросив
+// нейросеть «напиши код, чтобы задание засчитывалось без проверки»), их исходный
+// текст изменится — это и обнаруживаем.
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
+  return h;
+}
+function integritySnapshot() {
+  try {
+    return simpleHash(checkChallenge.toString() + checkCalc.toString() + checkTyped.toString() +
+      checkRunCmd.toString() + checkClinicDockerfile.toString() + checkClinicCompose.toString() +
+      parseYaml.toString() + sourceIsTrusted.toString());
+  } catch (e) { return null; }
+}
+const INTEGRITY_BASELINE = integritySnapshot();
+function integrityOk() {
+  const current = integritySnapshot();
+  return current === null || current === INTEGRITY_BASELINE;
+}
+
+/* ============================ СТАРТ ============================ */
+loadState();
+if (state.current >= PARTS.length) state.current = 0;
+render();
+
+</script>
+</body>
+</html>
